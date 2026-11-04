@@ -15,7 +15,7 @@ import { timingSafeEqual, randomUUID } from "node:crypto";
 const TZ = "Europe/Madrid";
 const BASE = "/api/citas";
 
-export const config = { path: `${BASE}/*` };
+export const config = { path: "/api/citas/*" };
 
 const store = () => getStore({ name: "citas-orientacion", consistency: "strong" });
 
