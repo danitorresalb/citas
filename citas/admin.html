@@ -187,10 +187,8 @@ function fila(s) {
   if (s.reserva) {
     const r = s.reserva;
     const linea = (t) => { const d = document.createElement("div"); d.textContent = t; info.append(d); };
-    linea(`${r.tipo === "familia" ? "Con familia" : "Con tutor/a"} · ${r.nombre} (${r.grupo})`);
+    linea(`${r.tipo === "familia" ? "Con familia" : "Con tutor/a"} · ${r.nombre}`);
     if (r.alumno) linea(`Alumno/a: ${r.alumno}`);
-    if (r.motivo) linea(`Motivo: ${r.motivo}`);
-    if (r.email || r.telefono) linea(["✉ " + r.email, "☎ " + r.telefono].filter((x) => x.length > 2).join("  "));
   }
   const acc = document.createElement("div");
   const b = document.createElement("button");

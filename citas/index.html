@@ -75,21 +75,11 @@
       <option value="familia">Con una familia (acompaño a la familia)</option>
     </select>
 
-    <div class="row">
-      <div><label for="nombre">Tu nombre y apellidos *</label><input id="nombre" required maxlength="80"></div>
-      <div><label for="grupo">Grupo / curso *</label><input id="grupo" required maxlength="30" placeholder="p. ej. 2º B"></div>
-    </div>
+    <label for="nombre">Tu nombre *</label>
+    <input id="nombre" required maxlength="80" autocomplete="name">
 
-    <label for="alumno">Alumno/a del que se trata</label>
+    <label for="alumno">Alumno/a del que quieres tratar (opcional)</label>
     <input id="alumno" maxlength="80">
-
-    <label for="motivo">Motivo de la cita</label>
-    <textarea id="motivo" rows="3" maxlength="500"></textarea>
-
-    <div class="row">
-      <div><label for="email">Correo (para confirmación)</label><input id="email" type="email" maxlength="120"></div>
-      <div><label for="telefono">Teléfono</label><input id="telefono" type="tel" maxlength="30"></div>
-    </div>
 
     <p id="errForm" class="msg err" hidden></p>
     <div class="actions">
@@ -177,7 +167,7 @@ function abrir(s) {
   $("resumen").textContent = `${fechaLarga(s.date)} · ${s.time} (${s.duration} min)` + (s.lugar ? ` · ${s.lugar}` : "");
   $("errForm").hidden = true;
   const guardado = JSON.parse(localStorage.getItem("citasDatos") || "{}");
-  for (const k of ["nombre", "grupo", "email", "telefono"]) if (guardado[k] && !$(k).value) $(k).value = guardado[k];
+  if (guardado.nombre && !$("nombre").value) $("nombre").value = guardado.nombre;
   $("dlg").showModal();
 }
 
@@ -189,14 +179,13 @@ $("form").addEventListener("submit", async (ev) => {
   $("errForm").hidden = true;
   const datos = {
     slotId: elegido.id,
-    tipo: $("tipo").value, nombre: $("nombre").value, grupo: $("grupo").value,
-    alumno: $("alumno").value, motivo: $("motivo").value, email: $("email").value, telefono: $("telefono").value,
+    tipo: $("tipo").value, nombre: $("nombre").value, alumno: $("alumno").value,
   };
   try {
     const r = await api("/book", { method: "POST", body: JSON.stringify(datos) });
-    localStorage.setItem("citasDatos", JSON.stringify({ nombre: datos.nombre, grupo: datos.grupo, email: datos.email, telefono: datos.telefono }));
+    localStorage.setItem("citasDatos", JSON.stringify({ nombre: datos.nombre }));
     $("dlg").close();
-    $("alumno").value = ""; $("motivo").value = "";
+    $("alumno").value = "";
     aviso(`¡Reserva confirmada! ${r.cuando}${r.lugar ? " · " + r.lugar : ""}.`, "ok");
     cargar();
   } catch (e) {
