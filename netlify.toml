@@ -7,3 +7,17 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+
+# La web también se ve en /reservas/ (el contenido sigue estando en la carpeta /citas/).
+# Para usar otro nombre, cambia la palabra "reservas" en estas dos reglas.
+[[redirects]]
+  from = "/reservas"
+  to = "/citas/"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/reservas/*"
+  to = "/citas/:splat"
+  status = 200
+  force = true
