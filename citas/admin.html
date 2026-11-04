@@ -8,49 +8,74 @@
 <style>
   :root{
     --bg:#f6f5f1; --card:#fff; --ink:#1f2328; --muted:#636b74; --line:#e3e1d9;
-    --accent:#1d5c63; --accent-ink:#fff; --accent-soft:#e3f0f0; --danger:#a3361f; --busy:#fbefd9; --busy-ink:#7a4b00;
+    --accent:#1d5c63; --accent-ink:#fff; --accent-soft:#e3f0f0; --danger:#a3361f;
+    --free:#2e7d4f; --busy:#c26a00; --busy-bg:#fbefd9; --busy-ink:#7a4b00;
     --radius:14px;
   }
   @media (prefers-color-scheme:dark){
     :root{--bg:#14171a; --card:#1c2024; --ink:#eceff1; --muted:#9aa4ad; --line:#2b3238;
-      --accent:#6cc4c9; --accent-ink:#0b2224; --accent-soft:#1c3336; --danger:#f08a73; --busy:#3a2f19; --busy-ink:#f1c978}
+      --accent:#6cc4c9; --accent-ink:#0b2224; --accent-soft:#1c3336; --danger:#f08a73;
+      --free:#7fd196; --busy:#f1a94e; --busy-bg:#3a2f19; --busy-ink:#f1c978}
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  main{max-width:900px;margin:0 auto;padding:24px 16px 64px}
-  h1{font-size:1.5rem;margin:8px 0 16px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px}
-  .tabs{display:flex;gap:8px;margin-bottom:16px}
-  .tab{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 18px;min-height:44px;font:inherit;cursor:pointer}
-  .tab[aria-selected=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  main{max-width:980px;margin:0 auto;padding:20px 16px 64px}
+  h1{font-size:1.5rem;margin:6px 0 16px}
+  h2{margin:0}
   button{font:inherit;cursor:pointer}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px}
   .btn{border:0;background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:10px 18px;min-height:44px;font-weight:600}
   .btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
   .btn.warn{background:transparent;color:var(--danger);border:1px solid var(--danger)}
   .btn.sm{min-height:36px;padding:6px 12px;font-size:.9rem}
-  label{display:block;font-weight:600;font-size:.9rem;margin:12px 0 4px}
-  input,select{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
-  input:focus{outline:2px solid var(--accent);outline-offset:1px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-  .dias{display:flex;gap:6px;flex-wrap:wrap}
-  .dias label{display:flex;align-items:center;gap:6px;font-weight:500;margin:0;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
-  .dias input{width:auto}
-  .msg{padding:12px 14px;border-radius:10px;margin:12px 0;background:var(--accent-soft)}
-  .msg.err{color:var(--danger)}
+  label{display:block;font-weight:600;font-size:.9rem;margin:10px 0 4px}
+  input,select{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);min-height:44px}
+  input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .muted{color:var(--muted)}
-  .day h2{font-size:1rem;margin:0 0 10px;text-transform:capitalize}
+  .msg{padding:12px 14px;border-radius:10px;margin:0 0 16px;background:var(--accent-soft)}
+  .msg.err{color:var(--danger)}
+  code{background:var(--accent-soft);padding:2px 6px;border-radius:6px;word-break:break-all}
+  .top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+
+  .layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
+  @media(max-width:820px){.layout{grid-template-columns:1fr}}
+
+  /* calendario */
+  .calhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+  .calhead h2{font-size:1.1rem;text-transform:capitalize;text-align:center;flex:1}
+  .nav{min-width:44px}
+  .grid7{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .dow{font-size:.75rem;color:var(--muted);text-align:center;padding-bottom:4px;font-weight:600}
+  .day{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;min-height:56px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px}
+  .day:hover{border-color:var(--accent)}
+  .day .n{font-weight:600;font-size:.95rem}
+  .day.past{opacity:.55}
+  .day.today .n{background:var(--accent);color:var(--accent-ink);border-radius:999px;min-width:26px;padding:0 6px}
+  .day[aria-pressed=true]{background:var(--accent-soft);border:2px solid var(--accent)}
+  .day.blank{border:0;background:transparent;pointer-events:none}
+  .pts{display:flex;gap:6px;font-size:.72rem;font-weight:700;line-height:1}
+  .pts .f{color:var(--free)} .pts .b{color:var(--busy)}
+  .leyenda{display:flex;gap:16px;margin:12px 0 0;font-size:.8rem;color:var(--muted)}
+  .leyenda .f{color:var(--free);font-weight:700} .leyenda .b{color:var(--busy);font-weight:700}
+
+  /* día */
+  .dia h2{font-size:1.1rem;text-transform:capitalize;margin-bottom:12px}
   .item{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
   .item:first-of-type{border-top:0}
-  .hora{font-weight:700;min-width:64px}
+  .hora{font-weight:700;min-width:96px}
   .estado{font-size:.8rem;border-radius:999px;padding:2px 10px;background:var(--accent-soft)}
-  .estado.res{background:var(--busy);color:var(--busy-ink)}
-  .info{flex:1 1 260px}
+  .estado.res{background:var(--busy-bg);color:var(--busy-ink)}
+  .info{flex:1 1 180px}
   .info div{font-size:.92rem}
-  .past{opacity:.55}
-  .cab{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
-  .cab label{display:flex;align-items:center;gap:8px;font-weight:500;margin:0}
-  .cab input{width:auto}
-  code{background:var(--accent-soft);padding:2px 6px;border-radius:6px}
+  .past{opacity:.6}
+  .vacio{color:var(--muted);margin:0 0 8px}
+  .alta{margin-top:14px;padding-top:14px;border-top:2px solid var(--line)}
+  .alta h3{margin:0 0 4px;font-size:1rem}
+  .fila2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  details{margin-top:14px}
+  summary{cursor:pointer;color:var(--accent);font-weight:600;min-height:32px}
+  .fila3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  @media(max-width:480px){.fila3{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -61,54 +86,69 @@
     <form id="formLogin">
       <label for="pass">Contraseña del orientador</label>
       <input id="pass" type="password" autocomplete="current-password" required>
-      <p id="errLogin" class="msg err" hidden></p>
+      <p id="errLogin" class="msg err" hidden style="margin-top:12px"></p>
       <p><button class="btn" type="submit">Entrar</button></p>
     </form>
   </section>
 
   <section id="panel" hidden>
-    <div class="tabs" role="tablist">
-      <button class="tab" role="tab" id="t1" aria-selected="true" data-p="agenda">Agenda y reservas</button>
-      <button class="tab" role="tab" id="t2" aria-selected="false" data-p="crear">Ofrecer horas</button>
-      <button class="tab" id="salir" style="margin-left:auto">Salir</button>
+    <div class="card top">
+      <span class="muted">Enlace para los tutores: <code id="enlace"></code></span>
+      <button class="btn sec sm" id="salir" type="button">Salir</button>
     </div>
 
-    <div id="agenda">
+    <div id="aviso" role="status" class="msg" hidden></div>
+
+    <div class="layout">
+      <!-- Calendario -->
       <div class="card">
-        <div class="cab">
-          <span class="muted">Enlace para los tutores: <code id="enlace"></code></span>
-          <label><input type="checkbox" id="verPasadas"> Mostrar horas pasadas</label>
+        <div class="calhead">
+          <button class="btn sec nav" id="prev" type="button" aria-label="Mes anterior">‹</button>
+          <h2 id="mesTitulo"></h2>
+          <button class="btn sec nav" id="next" type="button" aria-label="Mes siguiente">›</button>
         </div>
+        <div class="grid7" id="dows"></div>
+        <div class="grid7" id="cal" style="margin-top:4px"></div>
+        <p class="leyenda"><span><span class="f">●</span> horas libres</span><span><span class="b">●</span> horas reservadas</span></p>
+        <p style="margin:12px 0 0"><button class="btn sec sm" id="hoyBtn" type="button">Ir a hoy</button></p>
       </div>
-      <div id="lista"></div>
-    </div>
 
-    <div id="crear" hidden>
-      <form id="formCrear" class="card">
-        <p class="muted" style="margin-top:0">Genera varias horas de golpe. Las que ya existan no se duplican.</p>
-        <div class="grid">
-          <div><label for="desde">Desde (fecha)</label><input id="desde" type="date" required></div>
-          <div><label for="hasta">Hasta (fecha)</label><input id="hasta" type="date" required></div>
-        </div>
-        <label>Días de la semana</label>
-        <div class="dias" id="dias">
-          <label><input type="checkbox" value="1" checked> Lun</label>
-          <label><input type="checkbox" value="2" checked> Mar</label>
-          <label><input type="checkbox" value="3" checked> Mié</label>
-          <label><input type="checkbox" value="4" checked> Jue</label>
-          <label><input type="checkbox" value="5" checked> Vie</label>
-        </div>
-        <div class="grid">
-          <div><label for="ini">Hora de inicio</label><input id="ini" type="time" value="09:00" required></div>
-          <div><label for="fin">Hora de fin</label><input id="fin" type="time" value="11:00" required></div>
-          <div><label for="dur">Duración (min)</label><input id="dur" type="number" min="5" max="240" step="5" value="20" required></div>
-          <div><label for="pausa">Pausa entre citas (min)</label><input id="pausa" type="number" min="0" max="60" step="5" value="0"></div>
-        </div>
-        <label for="lugar">Lugar (opcional)</label>
-        <input id="lugar" maxlength="80" value="Despacho de Orientación">
-        <p id="prev" class="msg"></p>
-        <button class="btn" type="submit">Publicar horas</button>
-      </form>
+      <!-- Día seleccionado -->
+      <div class="card dia">
+        <h2 id="diaTitulo"></h2>
+        <div id="diaLista"></div>
+
+        <form id="formUna" class="alta">
+          <h3>Añadir una hora</h3>
+          <div class="fila2">
+            <div><label for="hora">Hora de inicio</label><input id="hora" type="time" step="300" required></div>
+            <div><label for="dur">Duración</label>
+              <select id="dur">
+                <option value="10">10 min</option><option value="15">15 min</option>
+                <option value="20" selected>20 min</option><option value="30">30 min</option>
+                <option value="45">45 min</option><option value="60">1 hora</option>
+              </select></div>
+          </div>
+          <label for="lugar">Lugar (opcional)</label>
+          <input id="lugar" maxlength="80">
+          <p style="margin:14px 0 0"><button class="btn" type="submit">Añadir hora</button></p>
+        </form>
+
+        <details id="multi">
+          <summary>Añadir varias horas seguidas este día</summary>
+          <form id="formVarias">
+            <p class="muted" style="margin:8px 0 0">Ejemplo: de 9:00 a 11:00 con citas de 20 min crea 9:00, 9:20, 9:40…</p>
+            <div class="fila3">
+              <div><label for="vIni">Desde</label><input id="vIni" type="time" value="09:00" required></div>
+              <div><label for="vFin">Hasta</label><input id="vFin" type="time" value="11:00" required></div>
+              <div><label for="vDur">Duración (min)</label><input id="vDur" type="number" min="5" max="240" step="5" value="20" required></div>
+            </div>
+            <p style="margin:14px 0 0"><button class="btn sec" type="submit">Añadir todas</button></p>
+          </form>
+        </details>
+
+        <p id="notaPasado" class="muted" hidden>Este día ya ha pasado: no se pueden añadir horas.</p>
+      </div>
     </div>
   </section>
 </main>
@@ -117,6 +157,9 @@
 const API = "/api/citas";
 let pass = sessionStorage.getItem("adminPass") || "";
 const $ = (id) => document.getElementById(id);
+const pad = (n) => String(n).padStart(2, "0");
+const aMin = (h) => { const [a, b] = h.split(":").map(Number); return a * 60 + b; };
+const aHora = (m) => pad(Math.floor(m / 60)) + ":" + pad(m % 60);
 
 async function api(ruta, opciones = {}) {
   const r = await fetch(API + ruta, {
@@ -131,9 +174,23 @@ async function api(ruta, opciones = {}) {
 const fechaLarga = (f) =>
   new Date(f + "T12:00:00Z").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
-// ---- acceso ----
-function mostrarPanel(si) { $("login").hidden = si; $("panel").hidden = !si; }
+// ---------- estado ----------
+const hoy = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
+let vy = Number(hoy.slice(0, 4)), vm = Number(hoy.slice(5, 7)) - 1; // mes visible
+let sel = hoy;                                                      // día seleccionado
+let datos = [];
+let porFecha = new Map();
 
+let tAviso;
+function aviso(texto, error = false) {
+  const el = $("aviso");
+  el.textContent = texto; el.hidden = !texto; el.className = "msg" + (error ? " err" : "");
+  clearTimeout(tAviso);
+  if (texto && !error) tAviso = setTimeout(() => (el.hidden = true), 5000);
+}
+
+// ---------- acceso ----------
+function mostrarPanel(si) { $("login").hidden = si; $("panel").hidden = !si; }
 async function entrar() {
   try { await cargar(); mostrarPanel(true); }
   catch (e) {
@@ -145,110 +202,151 @@ $("formLogin").addEventListener("submit", (ev) => {
   ev.preventDefault(); pass = $("pass").value; sessionStorage.setItem("adminPass", pass); entrar();
 });
 $("salir").addEventListener("click", () => { sessionStorage.removeItem("adminPass"); pass = ""; location.reload(); });
-
-// ---- pestañas ----
-document.querySelectorAll(".tab[data-p]").forEach((b) => b.addEventListener("click", () => {
-  document.querySelectorAll(".tab[data-p]").forEach((x) => x.setAttribute("aria-selected", x === b));
-  $("agenda").hidden = b.dataset.p !== "agenda"; $("crear").hidden = b.dataset.p !== "crear";
-}));
-
-// ---- agenda ----
-let datos = [];
-async function cargar() { datos = (await api("/admin/data")).slots; pintar(); }
-$("verPasadas").addEventListener("change", pintar);
 $("enlace").textContent = location.origin + location.pathname.replace(/admin(\.html)?$/, "");
 
-function pintar() {
-  const cont = $("lista"); cont.replaceChildren();
-  const ver = $("verPasadas").checked;
-  const slots = datos.filter((s) => ver || !s.pasada);
-  if (!slots.length) {
-    const p = document.createElement("p"); p.className = "card muted"; p.textContent = "No hay horas. Usa «Ofrecer horas» para crearlas.";
-    cont.append(p); return;
+// ---------- datos ----------
+async function cargar() {
+  datos = (await api("/admin/data")).slots;
+  porFecha = new Map();
+  for (const s of datos) { if (!porFecha.has(s.date)) porFecha.set(s.date, []); porFecha.get(s.date).push(s); }
+  pintarCal(); pintarDia();
+}
+
+// ---------- calendario ----------
+["L", "M", "X", "J", "V", "S", "D"].forEach((d) => {
+  const e = document.createElement("div"); e.className = "dow"; e.textContent = d; $("dows").append(e);
+});
+
+function pintarCal() {
+  const primero = new Date(Date.UTC(vy, vm, 1, 12));
+  $("mesTitulo").textContent = primero.toLocaleDateString("es-ES", { month: "long", year: "numeric", timeZone: "UTC" });
+  const hueco = (primero.getUTCDay() + 6) % 7; // lunes = 0
+  const dias = new Date(Date.UTC(vy, vm + 1, 0)).getUTCDate();
+  const cal = $("cal"); cal.replaceChildren();
+  for (let i = 0; i < hueco; i++) { const e = document.createElement("div"); e.className = "day blank"; cal.append(e); }
+  for (let d = 1; d <= dias; d++) {
+    const iso = `${vy}-${pad(vm + 1)}-${pad(d)}`;
+    const lista = porFecha.get(iso) || [];
+    const libres = lista.filter((s) => !s.reserva).length, reservadas = lista.length - libres;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "day" + (iso < hoy ? " past" : "") + (iso === hoy ? " today" : "");
+    b.setAttribute("aria-pressed", String(iso === sel));
+    b.setAttribute("aria-label", `${fechaLarga(iso)}: ${libres} libres, ${reservadas} reservadas`);
+    const n = document.createElement("span"); n.className = "n"; n.textContent = d; b.append(n);
+    if (lista.length) {
+      const p = document.createElement("span"); p.className = "pts";
+      if (libres) { const f = document.createElement("span"); f.className = "f"; f.textContent = "● " + libres; p.append(f); }
+      if (reservadas) { const r = document.createElement("span"); r.className = "b"; r.textContent = "● " + reservadas; p.append(r); }
+      b.append(p);
+    }
+    b.addEventListener("click", () => { sel = iso; pintarCal(); pintarDia(); });
+    cal.append(b);
   }
-  const porDia = new Map();
-  for (const s of slots) { if (!porDia.has(s.date)) porDia.set(s.date, []); porDia.get(s.date).push(s); }
-  for (const [fecha, lista] of porDia) {
-    const card = document.createElement("div"); card.className = "card day";
-    const h = document.createElement("h2"); h.textContent = fechaLarga(fecha); card.append(h);
-    for (const s of lista) card.append(fila(s));
-    cont.append(card);
+}
+function moverMes(delta) {
+  vm += delta;
+  if (vm < 0) { vm = 11; vy--; } else if (vm > 11) { vm = 0; vy++; }
+  pintarCal();
+}
+$("prev").addEventListener("click", () => moverMes(-1));
+$("next").addEventListener("click", () => moverMes(1));
+$("hoyBtn").addEventListener("click", () => { sel = hoy; vy = Number(hoy.slice(0, 4)); vm = Number(hoy.slice(5, 7)) - 1; pintarCal(); pintarDia(); });
+
+// ---------- día seleccionado ----------
+function pintarDia() {
+  $("diaTitulo").textContent = fechaLarga(sel);
+  const cont = $("diaLista"); cont.replaceChildren();
+  const lista = (porFecha.get(sel) || []).slice().sort((a, b) => a.time.localeCompare(b.time));
+  if (!lista.length) {
+    const p = document.createElement("p"); p.className = "vacio"; p.textContent = "No hay horas este día.";
+    cont.append(p);
+  }
+  for (const s of lista) cont.append(fila(s));
+
+  const pasado = sel < hoy;
+  $("formUna").hidden = pasado; $("multi").hidden = pasado; $("notaPasado").hidden = !pasado;
+  if (!pasado) {
+    // sugerir como hora de inicio el final de la última hora del día
+    const ultima = lista[lista.length - 1];
+    $("hora").value = ultima ? aHora(aMin(ultima.time) + ultima.duration) : "09:00";
+    $("lugar").value = localStorage.getItem("lugarDefecto") ?? "Despacho de Orientación";
   }
 }
 
 function fila(s) {
   const it = document.createElement("div"); it.className = "item" + (s.pasada ? " past" : "");
-  const hora = document.createElement("div"); hora.className = "hora"; hora.textContent = s.time;
+  const hora = document.createElement("div"); hora.className = "hora";
+  hora.textContent = `${s.time} – ${aHora(aMin(s.time) + s.duration)}`;
   const info = document.createElement("div"); info.className = "info";
   const est = document.createElement("span"); est.className = "estado" + (s.reserva ? " res" : "");
   est.textContent = s.reserva ? "Reservada" : "Libre";
-  const meta = document.createElement("span"); meta.className = "muted"; meta.textContent = ` ${s.duration} min` + (s.lugar ? ` · ${s.lugar}` : "");
-  info.append(est, meta);
+  info.append(est);
+  if (s.lugar) { const m = document.createElement("span"); m.className = "muted"; m.textContent = " " + s.lugar; info.append(m); }
   if (s.reserva) {
     const r = s.reserva;
     const linea = (t) => { const d = document.createElement("div"); d.textContent = t; info.append(d); };
     linea(`${r.tipo === "familia" ? "Con familia" : "Con tutor/a"} · ${r.nombre}`);
     if (r.alumno) linea(`Alumno/a: ${r.alumno}`);
   }
-  const acc = document.createElement("div");
-  const b = document.createElement("button");
-  b.className = "btn warn sm";
+  const b = document.createElement("button"); b.type = "button"; b.className = "btn warn sm";
   if (s.reserva) { b.textContent = "Cancelar reserva"; b.onclick = () => cancelarReserva(s); }
-  else { b.textContent = "Eliminar hora"; b.onclick = () => eliminarHora(s); }
-  acc.append(b);
-  it.append(hora, info, acc);
+  else { b.textContent = "Quitar"; b.onclick = () => eliminarHora(s); }
+  it.append(hora, info, b);
   return it;
 }
 
 async function cancelarReserva(s) {
   if (!confirm(`¿Cancelar la reserva de ${s.reserva.nombre}? La hora volverá a estar libre.`)) return;
-  try { await api("/admin/bookings/" + s.id, { method: "DELETE" }); await cargar(); } catch (e) { alert(e.message); }
+  try { await api("/admin/bookings/" + s.id, { method: "DELETE" }); await cargar(); aviso("Reserva cancelada: la hora vuelve a estar libre."); }
+  catch (e) { aviso(e.message, true); }
 }
 async function eliminarHora(s) {
-  try { await api("/admin/slots/" + s.id, { method: "DELETE" }); await cargar(); } catch (e) { alert(e.message); }
+  try { await api("/admin/slots/" + s.id, { method: "DELETE" }); await cargar(); aviso("Hora eliminada."); }
+  catch (e) { aviso(e.message, true); }
 }
 
-// ---- crear horas ----
-const aMin = (h) => { const [a, b] = h.split(":").map(Number); return a * 60 + b; };
-const aHora = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
-
-function generar() {
-  const out = [];
-  const desde = $("desde").value, hasta = $("hasta").value;
-  if (!desde || !hasta || hasta < desde) return out;
-  const dias = [...document.querySelectorAll("#dias input:checked")].map((i) => Number(i.value));
-  const ini = aMin($("ini").value), fin = aMin($("fin").value);
-  const dur = Number($("dur").value), paso = dur + Number($("pausa").value || 0);
-  if (!(dur >= 5) || !(paso > 0)) return out;
-  const d = new Date(desde + "T12:00:00Z"), limite = new Date(hasta + "T12:00:00Z");
-  for (let n = 0; d <= limite && n < 120; d.setUTCDate(d.getUTCDate() + 1), n++) {
-    if (!dias.includes(d.getUTCDay())) continue;
-    const fecha = d.toISOString().slice(0, 10);
-    for (let t = ini; t + dur <= fin; t += paso) out.push({ date: fecha, time: aHora(t), duration: dur, lugar: $("lugar").value });
-  }
-  return out;
+// ---------- añadir horas ----------
+function solapes(horas, dur) {
+  const existentes = porFecha.get(sel) || [];
+  return horas.filter((h) => {
+    const a = aMin(h), b = a + dur;
+    return existentes.some((s) => { const c = aMin(s.time), d = c + s.duration; return a < d && c < b; });
+  }).length;
 }
-function actualizarPrev() {
-  const n = generar().length;
-  $("prev").textContent = n ? `Se publicarán ${n} horas.` : "Completa las fechas y horas para ver cuántas horas se crearán.";
-}
-document.querySelectorAll("#formCrear input").forEach((i) => i.addEventListener("input", actualizarPrev));
 
-$("formCrear").addEventListener("submit", async (ev) => {
+async function crear(horas, dur) {
+  const lugar = $("lugar").value.trim();
+  localStorage.setItem("lugarDefecto", lugar);
+  const slots = horas.map((time) => ({ date: sel, time, duration: dur, lugar }));
+  const r = await api("/admin/slots", { method: "POST", body: JSON.stringify({ slots }) });
+  await cargar();
+  const partes = [];
+  if (r.creadas) partes.push(r.creadas === 1 ? "Hora añadida." : `${r.creadas} horas añadidas.`);
+  if (r.existentes) partes.push(`${r.existentes} ya existían.`);
+  if (r.omitidas) partes.push(`${r.omitidas} no se añadieron (ya han pasado).`);
+  aviso(partes.join(" ") || "No se añadió nada.", !r.creadas);
+}
+
+$("formUna").addEventListener("submit", async (ev) => {
   ev.preventDefault();
-  const slots = generar();
-  if (!slots.length) return alert("No hay horas que crear con esos datos.");
-  if (slots.length > 500) return alert("Máximo 500 horas de una vez. Reduce el rango de fechas.");
-  try {
-    const r = await api("/admin/slots", { method: "POST", body: JSON.stringify({ slots }) });
-    $("prev").textContent = `Listo: ${r.creadas} creadas` + (r.existentes ? `, ${r.existentes} ya existían` : "") + (r.omitidas ? `, ${r.omitidas} omitidas (pasadas o no válidas)` : "") + ".";
-    await cargar();
-  } catch (e) { alert(e.message); }
+  const hora = $("hora").value, dur = Number($("dur").value);
+  if (!hora) return;
+  if (solapes([hora], dur) && !confirm("Esa hora se solapa con otra que ya tienes ese día. ¿Añadirla igualmente?")) return;
+  try { await crear([hora], dur); } catch (e) { aviso(e.message, true); }
 });
 
-const hoy = new Date().toLocaleDateString("sv-SE");
-$("desde").min = $("hasta").min = hoy;
-actualizarPrev();
+$("formVarias").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const ini = aMin($("vIni").value), fin = aMin($("vFin").value), dur = Number($("vDur").value);
+  const horas = [];
+  for (let t = ini; t + dur <= fin; t += dur) horas.push(aHora(t));
+  if (!horas.length) return aviso("Con esos datos no cabe ninguna hora. Revisa «Desde», «Hasta» y la duración.", true);
+  if (horas.length > 60) return aviso("Son demasiadas horas para un solo día.", true);
+  if (solapes(horas, dur) && !confirm("Alguna de esas horas se solapa con otras que ya tienes ese día. ¿Añadirlas igualmente?")) return;
+  try { await crear(horas, dur); } catch (e) { aviso(e.message, true); }
+});
+
 if (pass) entrar();
 </script>
 </body>
