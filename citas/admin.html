@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Panel de citas — Orientación</title>
+<style>
+  :root{
+    --bg:#f6f5f1; --card:#fff; --ink:#1f2328; --muted:#636b74; --line:#e3e1d9;
+    --accent:#1d5c63; --accent-ink:#fff; --accent-soft:#e3f0f0; --danger:#a3361f; --busy:#fbefd9; --busy-ink:#7a4b00;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#14171a; --card:#1c2024; --ink:#eceff1; --muted:#9aa4ad; --line:#2b3238;
+      --accent:#6cc4c9; --accent-ink:#0b2224; --accent-soft:#1c3336; --danger:#f08a73; --busy:#3a2f19; --busy-ink:#f1c978}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  main{max-width:900px;margin:0 auto;padding:24px 16px 64px}
+  h1{font-size:1.5rem;margin:8px 0 16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 18px;min-height:44px;font:inherit;cursor:pointer}
+  .tab[aria-selected=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  button{font:inherit;cursor:pointer}
+  .btn{border:0;background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:10px 18px;min-height:44px;font-weight:600}
+  .btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.warn{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+  .btn.sm{min-height:36px;padding:6px 12px;font-size:.9rem}
+  label{display:block;font-weight:600;font-size:.9rem;margin:12px 0 4px}
+  input,select{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+  input:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .dias{display:flex;gap:6px;flex-wrap:wrap}
+  .dias label{display:flex;align-items:center;gap:6px;font-weight:500;margin:0;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
+  .dias input{width:auto}
+  .msg{padding:12px 14px;border-radius:10px;margin:12px 0;background:var(--accent-soft)}
+  .msg.err{color:var(--danger)}
+  .muted{color:var(--muted)}
+  .day h2{font-size:1rem;margin:0 0 10px;text-transform:capitalize}
+  .item{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+  .item:first-of-type{border-top:0}
+  .hora{font-weight:700;min-width:64px}
+  .estado{font-size:.8rem;border-radius:999px;padding:2px 10px;background:var(--accent-soft)}
+  .estado.res{background:var(--busy);color:var(--busy-ink)}
+  .info{flex:1 1 260px}
+  .info div{font-size:.92rem}
+  .past{opacity:.55}
+  .cab{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+  .cab label{display:flex;align-items:center;gap:8px;font-weight:500;margin:0}
+  .cab input{width:auto}
+  code{background:var(--accent-soft);padding:2px 6px;border-radius:6px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Panel de citas — Orientación</h1>
+
+  <section id="login" class="card">
+    <form id="formLogin">
+      <label for="pass">Contraseña del orientador</label>
+      <input id="pass" type="password" autocomplete="current-password" required>
+      <p id="errLogin" class="msg err" hidden></p>
+      <p><button class="btn" type="submit">Entrar</button></p>
+    </form>
+  </section>
+
+  <section id="panel" hidden>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="t1" aria-selected="true" data-p="agenda">Agenda y reservas</button>
+      <button class="tab" role="tab" id="t2" aria-selected="false" data-p="crear">Ofrecer horas</button>
+      <button class="tab" id="salir" style="margin-left:auto">Salir</button>
+    </div>
+
+    <div id="agenda">
+      <div class="card">
+        <div class="cab">
+          <span class="muted">Enlace para los tutores: <code id="enlace"></code></span>
+          <label><input type="checkbox" id="verPasadas"> Mostrar horas pasadas</label>
+        </div>
+      </div>
+      <div id="lista"></div>
+    </div>
+
+    <div id="crear" hidden>
+      <form id="formCrear" class="card">
+        <p class="muted" style="margin-top:0">Genera varias horas de golpe. Las que ya existan no se duplican.</p>
+        <div class="grid">
+          <div><label for="desde">Desde (fecha)</label><input id="desde" type="date" required></div>
+          <div><label for="hasta">Hasta (fecha)</label><input id="hasta" type="date" required></div>
+        </div>
+        <label>Días de la semana</label>
+        <div class="dias" id="dias">
+          <label><input type="checkbox" value="1" checked> Lun</label>
+          <label><input type="checkbox" value="2" checked> Mar</label>
+          <label><input type="checkbox" value="3" checked> Mié</label>
+          <label><input type="checkbox" value="4" checked> Jue</label>
+          <label><input type="checkbox" value="5" checked> Vie</label>
+        </div>
+        <div class="grid">
+          <div><label for="ini">Hora de inicio</label><input id="ini" type="time" value="09:00" required></div>
+          <div><label for="fin">Hora de fin</label><input id="fin" type="time" value="11:00" required></div>
+          <div><label for="dur">Duración (min)</label><input id="dur" type="number" min="5" max="240" step="5" value="20" required></div>
+          <div><label for="pausa">Pausa entre citas (min)</label><input id="pausa" type="number" min="0" max="60" step="5" value="0"></div>
+        </div>
+        <label for="lugar">Lugar (opcional)</label>
+        <input id="lugar" maxlength="80" value="Despacho de Orientación">
+        <p id="prev" class="msg"></p>
+        <button class="btn" type="submit">Publicar horas</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<script>
+const API = "/api/citas";
+let pass = sessionStorage.getItem("adminPass") || "";
+const $ = (id) => document.getElementById(id);
+
+async function api(ruta, opciones = {}) {
+  const r = await fetch(API + ruta, {
+    ...opciones,
+    headers: { "content-type": "application/json", "x-admin-password": pass, ...(opciones.headers || {}) },
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(d.error || "Error"); e.status = r.status; throw e; }
+  return d;
+}
+
+const fechaLarga = (f) =>
+  new Date(f + "T12:00:00Z").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+
+// ---- acceso ----
+function mostrarPanel(si) { $("login").hidden = si; $("panel").hidden = !si; }
+
+async function entrar() {
+  try { await cargar(); mostrarPanel(true); }
+  catch (e) {
+    mostrarPanel(false); sessionStorage.removeItem("adminPass");
+    if (pass) { $("errLogin").textContent = e.message; $("errLogin").hidden = false; }
+  }
+}
+$("formLogin").addEventListener("submit", (ev) => {
+  ev.preventDefault(); pass = $("pass").value; sessionStorage.setItem("adminPass", pass); entrar();
+});
+$("salir").addEventListener("click", () => { sessionStorage.removeItem("adminPass"); pass = ""; location.reload(); });
+
+// ---- pestañas ----
+document.querySelectorAll(".tab[data-p]").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".tab[data-p]").forEach((x) => x.setAttribute("aria-selected", x === b));
+  $("agenda").hidden = b.dataset.p !== "agenda"; $("crear").hidden = b.dataset.p !== "crear";
+}));
+
+// ---- agenda ----
+let datos = [];
+async function cargar() { datos = (await api("/admin/data")).slots; pintar(); }
+$("verPasadas").addEventListener("change", pintar);
+$("enlace").textContent = location.origin + location.pathname.replace(/admin(\.html)?$/, "");
+
+function pintar() {
+  const cont = $("lista"); cont.replaceChildren();
+  const ver = $("verPasadas").checked;
+  const slots = datos.filter((s) => ver || !s.pasada);
+  if (!slots.length) {
+    const p = document.createElement("p"); p.className = "card muted"; p.textContent = "No hay horas. Usa «Ofrecer horas» para crearlas.";
+    cont.append(p); return;
+  }
+  const porDia = new Map();
+  for (const s of slots) { if (!porDia.has(s.date)) porDia.set(s.date, []); porDia.get(s.date).push(s); }
+  for (const [fecha, lista] of porDia) {
+    const card = document.createElement("div"); card.className = "card day";
+    const h = document.createElement("h2"); h.textContent = fechaLarga(fecha); card.append(h);
+    for (const s of lista) card.append(fila(s));
+    cont.append(card);
+  }
+}
+
+function fila(s) {
+  const it = document.createElement("div"); it.className = "item" + (s.pasada ? " past" : "");
+  const hora = document.createElement("div"); hora.className = "hora"; hora.textContent = s.time;
+  const info = document.createElement("div"); info.className = "info";
+  const est = document.createElement("span"); est.className = "estado" + (s.reserva ? " res" : "");
+  est.textContent = s.reserva ? "Reservada" : "Libre";
+  const meta = document.createElement("span"); meta.className = "muted"; meta.textContent = ` ${s.duration} min` + (s.lugar ? ` · ${s.lugar}` : "");
+  info.append(est, meta);
+  if (s.reserva) {
+    const r = s.reserva;
+    const linea = (t) => { const d = document.createElement("div"); d.textContent = t; info.append(d); };
+    linea(`${r.tipo === "familia" ? "Con familia" : "Con tutor/a"} · ${r.nombre} (${r.grupo})`);
+    if (r.alumno) linea(`Alumno/a: ${r.alumno}`);
+    if (r.motivo) linea(`Motivo: ${r.motivo}`);
+    if (r.email || r.telefono) linea(["✉ " + r.email, "☎ " + r.telefono].filter((x) => x.length > 2).join("  "));
+  }
+  const acc = document.createElement("div");
+  const b = document.createElement("button");
+  b.className = "btn warn sm";
+  if (s.reserva) { b.textContent = "Cancelar reserva"; b.onclick = () => cancelarReserva(s); }
+  else { b.textContent = "Eliminar hora"; b.onclick = () => eliminarHora(s); }
+  acc.append(b);
+  it.append(hora, info, acc);
+  return it;
+}
+
+async function cancelarReserva(s) {
+  if (!confirm(`¿Cancelar la reserva de ${s.reserva.nombre}? La hora volverá a estar libre.`)) return;
+  try { await api("/admin/bookings/" + s.id, { method: "DELETE" }); await cargar(); } catch (e) { alert(e.message); }
+}
+async function eliminarHora(s) {
+  try { await api("/admin/slots/" + s.id, { method: "DELETE" }); await cargar(); } catch (e) { alert(e.message); }
+}
+
+// ---- crear horas ----
+const aMin = (h) => { const [a, b] = h.split(":").map(Number); return a * 60 + b; };
+const aHora = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+
+function generar() {
+  const out = [];
+  const desde = $("desde").value, hasta = $("hasta").value;
+  if (!desde || !hasta || hasta < desde) return out;
+  const dias = [...document.querySelectorAll("#dias input:checked")].map((i) => Number(i.value));
+  const ini = aMin($("ini").value), fin = aMin($("fin").value);
+  const dur = Number($("dur").value), paso = dur + Number($("pausa").value || 0);
+  if (!(dur >= 5) || !(paso > 0)) return out;
+  const d = new Date(desde + "T12:00:00Z"), limite = new Date(hasta + "T12:00:00Z");
+  for (let n = 0; d <= limite && n < 120; d.setUTCDate(d.getUTCDate() + 1), n++) {
+    if (!dias.includes(d.getUTCDay())) continue;
+    const fecha = d.toISOString().slice(0, 10);
+    for (let t = ini; t + dur <= fin; t += paso) out.push({ date: fecha, time: aHora(t), duration: dur, lugar: $("lugar").value });
+  }
+  return out;
+}
+function actualizarPrev() {
+  const n = generar().length;
+  $("prev").textContent = n ? `Se publicarán ${n} horas.` : "Completa las fechas y horas para ver cuántas horas se crearán.";
+}
+document.querySelectorAll("#formCrear input").forEach((i) => i.addEventListener("input", actualizarPrev));
+
+$("formCrear").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const slots = generar();
+  if (!slots.length) return alert("No hay horas que crear con esos datos.");
+  if (slots.length > 500) return alert("Máximo 500 horas de una vez. Reduce el rango de fechas.");
+  try {
+    const r = await api("/admin/slots", { method: "POST", body: JSON.stringify({ slots }) });
+    $("prev").textContent = `Listo: ${r.creadas} creadas` + (r.existentes ? `, ${r.existentes} ya existían` : "") + (r.omitidas ? `, ${r.omitidas} omitidas (pasadas o no válidas)` : "") + ".";
+    await cargar();
+  } catch (e) { alert(e.message); }
+});
+
+const hoy = new Date().toLocaleDateString("sv-SE");
+$("desde").min = $("hasta").min = hoy;
+actualizarPrev();
+if (pass) entrar();
+</script>
+</body>
+</html>

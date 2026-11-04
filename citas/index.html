@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Reserva de citas con Orientación</title>
+<style>
+  :root{
+    --bg:#f6f5f1; --card:#fff; --ink:#1f2328; --muted:#636b74; --line:#e3e1d9;
+    --accent:#1d5c63; --accent-ink:#fff; --accent-soft:#e3f0f0; --danger:#a3361f; --ok:#256c3a;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#14171a; --card:#1c2024; --ink:#eceff1; --muted:#9aa4ad; --line:#2b3238;
+      --accent:#6cc4c9; --accent-ink:#0b2224; --accent-soft:#1c3336; --danger:#f08a73; --ok:#7fd196}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  main{max-width:760px;margin:0 auto;padding:24px 16px 64px}
+  h1{font-size:1.6rem;margin:8px 0 4px}
+  .sub{color:var(--muted);margin:0 0 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px}
+  .day h2{font-size:1rem;margin:0 0 12px;text-transform:capitalize}
+  .times{display:flex;flex-wrap:wrap;gap:8px}
+  button{font:inherit;cursor:pointer}
+  .slot{border:1px solid var(--accent);background:var(--accent-soft);color:var(--ink);border-radius:10px;padding:8px 14px;min-height:44px}
+  .slot:hover,.slot:focus-visible{background:var(--accent);color:var(--accent-ink)}
+  .slot small{color:inherit;opacity:.75;margin-left:6px}
+  .btn{border:0;background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:10px 18px;min-height:44px;font-weight:600}
+  .btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .msg{padding:12px 14px;border-radius:10px;margin-bottom:16px}
+  .msg.ok{background:var(--accent-soft);color:var(--ok)}
+  .msg.err{background:color-mix(in srgb,var(--danger) 12%,transparent);color:var(--danger)}
+  .empty{color:var(--muted);text-align:center;padding:32px 8px}
+  dialog{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);color:var(--ink);padding:22px;width:min(480px,calc(100vw - 24px))}
+  dialog::backdrop{background:rgba(0,0,0,.45)}
+  label{display:block;font-weight:600;font-size:.9rem;margin:12px 0 4px}
+  input,select,textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:480px){.row{grid-template-columns:1fr}}
+  .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+  .resumen{background:var(--accent-soft);border-radius:10px;padding:10px 12px;margin:0 0 4px;text-transform:capitalize}
+  .hint{color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+  <h1>Reserva de citas con Orientación</h1>
+  <p class="sub">Elige una hora libre. Cuando alguien la reserva, desaparece de la lista.</p>
+
+  <div id="aviso" role="status"></div>
+
+  <section id="acceso" class="card" hidden>
+    <form id="formCodigo">
+      <label for="codigo">Código de acceso</label>
+      <input id="codigo" type="password" autocomplete="off" required>
+      <p class="hint">Te lo ha facilitado el departamento de Orientación.</p>
+      <div class="actions"><button class="btn" type="submit">Entrar</button></div>
+    </form>
+  </section>
+
+  <section id="lista"></section>
+</main>
+
+<dialog id="dlg">
+  <form id="form" method="dialog">
+    <h2 style="margin:0 0 10px;font-size:1.2rem">Reservar cita</h2>
+    <p id="resumen" class="resumen"></p>
+
+    <label for="tipo">¿Con quién es la cita?</label>
+    <select id="tipo" required>
+      <option value="tutor">Conmigo (tutor/a)</option>
+      <option value="familia">Con una familia (acompaño a la familia)</option>
+    </select>
+
+    <div class="row">
+      <div><label for="nombre">Tu nombre y apellidos *</label><input id="nombre" required maxlength="80"></div>
+      <div><label for="grupo">Grupo / curso *</label><input id="grupo" required maxlength="30" placeholder="p. ej. 2º B"></div>
+    </div>
+
+    <label for="alumno">Alumno/a del que se trata</label>
+    <input id="alumno" maxlength="80">
+
+    <label for="motivo">Motivo de la cita</label>
+    <textarea id="motivo" rows="3" maxlength="500"></textarea>
+
+    <div class="row">
+      <div><label for="email">Correo (para confirmación)</label><input id="email" type="email" maxlength="120"></div>
+      <div><label for="telefono">Teléfono</label><input id="telefono" type="tel" maxlength="30"></div>
+    </div>
+
+    <p id="errForm" class="msg err" hidden></p>
+    <div class="actions">
+      <button type="button" class="btn sec" id="cancelar">Cancelar</button>
+      <button type="submit" class="btn" id="enviar">Confirmar reserva</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const API = "/api/citas";
+let codigo = sessionStorage.getItem("codigo") || "";
+let elegido = null;
+
+const $ = (id) => document.getElementById(id);
+
+async function api(ruta, opciones = {}) {
+  const r = await fetch(API + ruta, {
+    ...opciones,
+    headers: { "content-type": "application/json", "x-codigo": codigo, ...(opciones.headers || {}) },
+  });
+  const datos = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(datos.error || "Ha ocurrido un error."); e.status = r.status; throw e; }
+  return datos;
+}
+
+function aviso(texto, tipo = "ok") {
+  const el = $("aviso");
+  el.className = texto ? "msg " + tipo : "";
+  el.textContent = texto || "";
+  if (texto) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+const fechaLarga = (f) =>
+  new Date(f + "T12:00:00Z").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+
+async function cargar() {
+  try {
+    const { slots } = await api("/slots");
+    $("acceso").hidden = true;
+    pintar(slots);
+  } catch (e) {
+    if (e.status === 401) {
+      sessionStorage.removeItem("codigo");
+      $("acceso").hidden = false;
+      $("lista").replaceChildren();
+      if (codigo) aviso(e.message, "err");
+      codigo = "";
+    } else {
+      aviso(e.message, "err");
+    }
+  }
+}
+
+function pintar(slots) {
+  const cont = $("lista");
+  cont.replaceChildren();
+  if (!slots.length) {
+    const p = document.createElement("p");
+    p.className = "card empty";
+    p.textContent = "Ahora mismo no hay horas disponibles. Vuelve a comprobarlo más adelante.";
+    cont.append(p);
+    return;
+  }
+  const porDia = new Map();
+  for (const s of slots) { if (!porDia.has(s.date)) porDia.set(s.date, []); porDia.get(s.date).push(s); }
+  for (const [fecha, lista] of porDia) {
+    const card = document.createElement("div"); card.className = "card day";
+    const h = document.createElement("h2"); h.textContent = fechaLarga(fecha);
+    const caja = document.createElement("div"); caja.className = "times";
+    for (const s of lista) {
+      const b = document.createElement("button");
+      b.className = "slot"; b.type = "button";
+      b.append(s.time);
+      const sm = document.createElement("small"); sm.textContent = s.duration + " min"; b.append(sm);
+      b.addEventListener("click", () => abrir(s));
+      caja.append(b);
+    }
+    card.append(h, caja); cont.append(card);
+  }
+}
+
+function abrir(s) {
+  elegido = s;
+  $("resumen").textContent = `${fechaLarga(s.date)} · ${s.time} (${s.duration} min)` + (s.lugar ? ` · ${s.lugar}` : "");
+  $("errForm").hidden = true;
+  const guardado = JSON.parse(localStorage.getItem("citasDatos") || "{}");
+  for (const k of ["nombre", "grupo", "email", "telefono"]) if (guardado[k] && !$(k).value) $(k).value = guardado[k];
+  $("dlg").showModal();
+}
+
+$("cancelar").addEventListener("click", () => $("dlg").close());
+
+$("form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const btn = $("enviar"); btn.disabled = true; btn.textContent = "Reservando…";
+  $("errForm").hidden = true;
+  const datos = {
+    slotId: elegido.id,
+    tipo: $("tipo").value, nombre: $("nombre").value, grupo: $("grupo").value,
+    alumno: $("alumno").value, motivo: $("motivo").value, email: $("email").value, telefono: $("telefono").value,
+  };
+  try {
+    const r = await api("/book", { method: "POST", body: JSON.stringify(datos) });
+    localStorage.setItem("citasDatos", JSON.stringify({ nombre: datos.nombre, grupo: datos.grupo, email: datos.email, telefono: datos.telefono }));
+    $("dlg").close();
+    $("alumno").value = ""; $("motivo").value = "";
+    aviso(`¡Reserva confirmada! ${r.cuando}${r.lugar ? " · " + r.lugar : ""}.`, "ok");
+    cargar();
+  } catch (e) {
+    $("errForm").textContent = e.message; $("errForm").hidden = false;
+    if (e.status === 409 || e.status === 404 || e.status === 410) { cargar(); }
+  } finally {
+    btn.disabled = false; btn.textContent = "Confirmar reserva";
+  }
+});
+
+$("formCodigo").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  codigo = $("codigo").value.trim();
+  sessionStorage.setItem("codigo", codigo);
+  aviso("");
+  cargar();
+});
+
+(async function init() {
+  try {
+    const cfg = await api("/config");
+    if (cfg.requiereCodigo && !codigo) { $("acceso").hidden = false; return; }
+  } catch (e) { aviso(e.message, "err"); return; }
+  cargar();
+})();
+</script>
+</body>
+</html>
