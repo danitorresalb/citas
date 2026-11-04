@@ -127,12 +127,8 @@ export default async (req) => {
       const slotId = String(b.slotId || "");
       if (!reId.test(slotId)) return fail("Hora no válida.");
       const nombre = limpiar(b.nombre, 80);
-      const grupo = limpiar(b.grupo, 30);
       const tipo = b.tipo === "familia" ? "familia" : "tutor";
       if (!nombre) return fail("Indica tu nombre.");
-      if (!grupo) return fail("Indica el grupo/curso.");
-      const email = limpiar(b.email, 120);
-      if (email && !reEmail.test(email)) return fail("El correo no parece válido.");
 
       const slot = await s.get(`slots/${slotId}`, { type: "json" });
       if (!slot) return fail("Esa hora ya no existe.", 404);
@@ -141,12 +137,8 @@ export default async (req) => {
       const reserva = {
         slotId,
         nombre,
-        grupo,
         tipo,
         alumno: limpiar(b.alumno, 80),
-        motivo: limpiar(b.motivo, 500),
-        email,
-        telefono: limpiar(b.telefono, 30),
         creada: new Date().toISOString(),
         token: randomUUID(),
       };
@@ -163,25 +155,13 @@ export default async (req) => {
 
       await enviarCorreo({
         to: process.env.NOTIFY_EMAIL,
-        subject: `Nueva cita: ${slot.date} ${slot.time} — ${nombre} (${grupo})`,
+        subject: `Nueva cita: ${slot.date} ${slot.time} — ${nombre}`,
         html: `<div style="font-family:system-ui,sans-serif;font-size:15px">
           <h2 style="margin:0 0 8px">Nueva reserva de cita</h2>
           <p style="margin:0 0 12px">${esc(cuando)}</p>
-          <table>${fila("Tipo", quien)}${fila("Reservado por", nombre)}${fila("Grupo", grupo)}
-          ${fila("Alumno/a", reserva.alumno)}${fila("Motivo", reserva.motivo)}
-          ${fila("Email", email)}${fila("Teléfono", reserva.telefono)}${fila("Lugar", slot.lugar)}</table></div>`,
+          <table>${fila("Tipo", quien)}${fila("Reservado por", nombre)}
+          ${fila("Alumno/a", reserva.alumno)}${fila("Lugar", slot.lugar)}</table></div>`,
       });
-
-      if (email && process.env.FROM_EMAIL) {
-        await enviarCorreo({
-          to: email,
-          subject: `Cita confirmada con Orientación: ${slot.date} ${slot.time}`,
-          html: `<div style="font-family:system-ui,sans-serif;font-size:15px">
-            <p>Hola ${esc(nombre)}, tu cita con Orientación queda confirmada:</p>
-            <p><b>${esc(cuando)}</b>${slot.lugar ? `<br>Lugar: ${esc(slot.lugar)}` : ""}</p>
-            <p>Si no puedes asistir, avisa con antelación para liberar la hora.</p></div>`,
-        });
-      }
 
       return json({ ok: true, cuando, lugar: slot.lugar || "" }, 201);
     }
