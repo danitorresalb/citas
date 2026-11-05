@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Reserva de citas con Daniel Torres (Orientación)</title>
+<title>Reserva de citas con Orientación</title>
 <style>
   :root{
     --bg:#f6f5f1; --card:#fff; --ink:#1f2328; --muted:#636b74; --line:#e3e1d9;
@@ -47,16 +47,16 @@
 </head>
 <body>
 <main>
-  <h1>Reserva de citas con Orientación (Daniel Torres)</h1>
+  <h1>Reserva de citas con Orientación</h1>
   <p class="sub">Elige una hora libre. Cuando alguien la reserva, desaparece de la lista.</p>
 
   <div id="aviso" role="status"></div>
 
   <section id="acceso" class="card" hidden>
     <form id="formCodigo">
-      <label for="codigo">Código de acceso</label>
-      <input id="codigo" type="password" autocomplete="off" required>
-      <p class="hint">Te lo ha facilitado el departamento de Orientación.</p>
+      <label for="codigo" id="etiquetaAcceso">Código de acceso</label>
+      <input id="codigo" type="text" autocomplete="off" spellcheck="false" required>
+      <p class="hint" id="ayudaAcceso">Te lo ha facilitado el departamento de Orientación.</p>
       <div class="actions"><button class="btn" type="submit">Entrar</button></div>
     </form>
   </section>
@@ -75,8 +75,14 @@
       <option value="familia">Con una familia (acompaño a la familia)</option>
     </select>
 
-    <label for="nombre">Tu nombre *</label>
-    <input id="nombre" required maxlength="80" autocomplete="name">
+    <div id="bloqueNombre">
+      <label for="nombre">Tu nombre *</label>
+      <input id="nombre" required maxlength="80" autocomplete="name">
+    </div>
+    <div id="bloqueIdentidad" hidden>
+      <label>Reservas como</label>
+      <p id="identidad" class="resumen" style="text-transform:none;word-break:break-word"></p>
+    </div>
 
     <label for="alumno">Alumno/a del que quieres tratar (opcional)</label>
     <input id="alumno" maxlength="80">
@@ -91,15 +97,18 @@
 
 <script>
 const API = "/api/citas";
-let codigo = sessionStorage.getItem("codigo") || "";
+let codigo = ""; // correo del tutor (o código común, si se usa ese modo)
 let elegido = null;
+let yo = null; // tutor identificado por su correo
+try { codigo = localStorage.getItem("acceso") || ""; } catch {}
+function olvidarCodigo() { try { localStorage.removeItem("acceso"); } catch {} }
 
 const $ = (id) => document.getElementById(id);
 
 async function api(ruta, opciones = {}) {
   const r = await fetch(API + ruta, {
     ...opciones,
-    headers: { "content-type": "application/json", "x-codigo": codigo, ...(opciones.headers || {}) },
+    headers: { "content-type": "application/json", "x-acceso": encodeURIComponent(codigo), ...(opciones.headers || {}) },
   });
   const datos = await r.json().catch(() => ({}));
   if (!r.ok) { const e = new Error(datos.error || "Ha ocurrido un error."); e.status = r.status; throw e; }
@@ -116,14 +125,25 @@ function aviso(texto, tipo = "ok") {
 const fechaLarga = (f) =>
   new Date(f + "T12:00:00Z").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
 
+function modoAcceso(personal) {
+  $("etiquetaAcceso").textContent = personal ? "Tu correo" : "Código de acceso";
+  $("codigo").type = personal ? "email" : "text";
+  $("codigo").placeholder = personal ? "nombre@centro.es" : "";
+  $("codigo").autocomplete = personal ? "email" : "off";
+  $("ayudaAcceso").textContent = personal
+    ? "Escribe el correo con el que el departamento de Orientación te ha dado de alta."
+    : "Te lo ha facilitado el departamento de Orientación.";
+}
+
 async function cargar() {
   try {
-    const { slots } = await api("/slots");
+    const { slots, tutor } = await api("/slots");
+    yo = tutor || null;
     $("acceso").hidden = true;
     pintar(slots);
   } catch (e) {
     if (e.status === 401) {
-      sessionStorage.removeItem("codigo");
+      olvidarCodigo();
       $("acceso").hidden = false;
       $("lista").replaceChildren();
       if (codigo) aviso(e.message, "err");
@@ -166,8 +186,16 @@ function abrir(s) {
   elegido = s;
   $("resumen").textContent = `${fechaLarga(s.date)} · ${s.time} (${s.duration} min)` + (s.lugar ? ` · ${s.lugar}` : "");
   $("errForm").hidden = true;
-  const guardado = JSON.parse(localStorage.getItem("citasDatos") || "{}");
-  if (guardado.nombre && !$("nombre").value) $("nombre").value = guardado.nombre;
+  $("bloqueNombre").hidden = !!yo;
+  $("nombre").required = !yo;
+  $("bloqueIdentidad").hidden = !yo;
+  if (yo) $("identidad").textContent = yo.nombre ? `${yo.nombre} (${yo.email})` : yo.email;
+  else {
+    try {
+      const guardado = JSON.parse(localStorage.getItem("citasDatos") || "{}");
+      if (guardado.nombre && !$("nombre").value) $("nombre").value = guardado.nombre;
+    } catch {}
+  }
   $("dlg").showModal();
 }
 
@@ -179,11 +207,11 @@ $("form").addEventListener("submit", async (ev) => {
   $("errForm").hidden = true;
   const datos = {
     slotId: elegido.id,
-    tipo: $("tipo").value, nombre: $("nombre").value, alumno: $("alumno").value,
+    tipo: $("tipo").value, nombre: yo ? "" : $("nombre").value, alumno: $("alumno").value,
   };
   try {
     const r = await api("/book", { method: "POST", body: JSON.stringify(datos) });
-    localStorage.setItem("citasDatos", JSON.stringify({ nombre: datos.nombre }));
+    if (!yo) { try { localStorage.setItem("citasDatos", JSON.stringify({ nombre: datos.nombre })); } catch {} }
     $("dlg").close();
     $("alumno").value = "";
     aviso(`¡Reserva confirmada! ${r.cuando}${r.lugar ? " · " + r.lugar : ""}.`, "ok");
@@ -199,7 +227,7 @@ $("form").addEventListener("submit", async (ev) => {
 $("formCodigo").addEventListener("submit", (ev) => {
   ev.preventDefault();
   codigo = $("codigo").value.trim();
-  sessionStorage.setItem("codigo", codigo);
+  try { localStorage.setItem("acceso", codigo); } catch {}
   aviso("");
   cargar();
 });
@@ -207,6 +235,7 @@ $("formCodigo").addEventListener("submit", (ev) => {
 (async function init() {
   try {
     const cfg = await api("/config");
+    modoAcceso(cfg.personal);
     if (cfg.requiereCodigo && !codigo) { $("acceso").hidden = false; return; }
   } catch (e) { aviso(e.message, "err"); return; }
   cargar();

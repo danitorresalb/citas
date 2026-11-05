@@ -75,6 +75,19 @@
   details{margin-top:14px}
   summary{cursor:pointer;color:var(--accent);font-weight:600;min-height:32px}
   .fila3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+  /* pestañas y tutores */
+  .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .tab{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 18px;min-height:44px}
+  .tab[aria-selected=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);min-height:120px}
+  textarea:focus{outline:2px solid var(--accent);outline-offset:2px}
+  .tutor{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+  .tutor:first-of-type{border-top:0}
+  .tutor .quien{flex:1 1 220px;min-width:0;word-break:break-word}
+  .tutor .cod{font-family:ui-monospace,Consolas,monospace;font-weight:700;letter-spacing:.08em;background:var(--accent-soft);padding:2px 8px;border-radius:6px;font-size:.85rem}
+  .tutor .acc{display:flex;gap:8px;flex-wrap:wrap}
+  .cardtit{font-size:1.1rem;margin-bottom:6px}
   @media(max-width:480px){.fila3{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -99,6 +112,12 @@
 
     <div id="aviso" role="status" class="msg" hidden></div>
 
+    <div class="tabs" role="tablist">
+      <button class="tab" id="tabAgenda" role="tab" aria-selected="true" type="button">Horas y citas</button>
+      <button class="tab" id="tabTutores" role="tab" aria-selected="false" type="button">Correos autorizados</button>
+    </div>
+
+    <div id="vistaAgenda">
     <div class="layout">
       <!-- Calendario -->
       <div class="card">
@@ -150,6 +169,31 @@
         <p id="notaPasado" class="muted" hidden>Este día ya ha pasado: no se pueden añadir horas.</p>
       </div>
     </div>
+    </div>
+
+    <!-- Tutores con acceso -->
+    <div id="vistaTutores" hidden>
+      <div class="card">
+        <h2 class="cardtit">Correos autorizados</h2>
+        <p class="muted" id="estadoAcceso" style="margin:0 0 12px"></p>
+        <div id="listaTutores"></div>
+      </div>
+
+      <form class="card" id="formTutores">
+        <h2 class="cardtit">Añadir correos</h2>
+        <p class="muted" style="margin:0">Escribe un correo por línea. Si quieres, añade el nombre después de una coma, o pega directamente desde Outlook («Ana López &lt;ana@centro.es&gt;»).</p>
+        <label for="listaNuevos">Correos</label>
+        <textarea id="listaNuevos" placeholder="ana@centro.es, Ana López&#10;luis@centro.es" spellcheck="false"></textarea>
+        <p style="margin:14px 0 0"><button class="btn" type="submit">Añadir a la lista</button></p>
+      </form>
+
+      <div class="card">
+        <h2 class="cardtit">Cómo funciona</h2>
+        <p class="muted" style="margin:0 0 8px">Cuando un tutor abre la web, se le pide su correo. Si está en esta lista, entra; si no, no ve ninguna hora. No se envía nada a nadie.</p>
+        <p class="muted" style="margin:0 0 8px">Sus reservas quedan a nombre del correo (o del nombre, si lo has puesto aquí) y lo verás en tu agenda y en el aviso que recibes.</p>
+        <p class="muted" style="margin:0"><b>Importante:</b> si quitas a todos de la lista, el acceso vuelve a ser libre (o con el código común, si lo configuraste en Netlify).</p>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -192,7 +236,7 @@ function aviso(texto, error = false) {
 // ---------- acceso ----------
 function mostrarPanel(si) { $("login").hidden = si; $("panel").hidden = !si; }
 async function entrar() {
-  try { await cargar(); mostrarPanel(true); }
+  try { await cargar(); mostrarPanel(true); cargarTutores().catch(() => {}); }
   catch (e) {
     mostrarPanel(false); sessionStorage.removeItem("adminPass");
     if (pass) { $("errLogin").textContent = e.message; $("errLogin").hidden = false; }
@@ -287,6 +331,7 @@ function fila(s) {
     const r = s.reserva;
     const linea = (t) => { const d = document.createElement("div"); d.textContent = t; info.append(d); };
     linea(`${r.tipo === "familia" ? "Con familia" : "Con tutor/a"} · ${r.nombre}`);
+    if (r.email && r.email !== r.nombre) linea("✉ " + r.email);
     if (r.alumno) linea(`Alumno/a: ${r.alumno}`);
   }
   const b = document.createElement("button"); b.type = "button"; b.className = "btn warn sm";
@@ -345,6 +390,73 @@ $("formVarias").addEventListener("submit", async (ev) => {
   if (horas.length > 60) return aviso("Son demasiadas horas para un solo día.", true);
   if (solapes(horas, dur) && !confirm("Alguna de esas horas se solapa con otras que ya tienes ese día. ¿Añadirlas igualmente?")) return;
   try { await crear(horas, dur); } catch (e) { aviso(e.message, true); }
+});
+
+// ---------- pestañas ----------
+function vista(cual) {
+  const t = cual === "tutores";
+  $("vistaAgenda").hidden = t; $("vistaTutores").hidden = !t;
+  $("tabAgenda").setAttribute("aria-selected", String(!t));
+  $("tabTutores").setAttribute("aria-selected", String(t));
+}
+$("tabAgenda").addEventListener("click", () => vista("agenda"));
+$("tabTutores").addEventListener("click", () => vista("tutores"));
+
+// ---------- tutores con acceso ----------
+let tutores = [];
+
+async function cargarTutores() {
+  tutores = (await api("/admin/tutors")).tutores;
+  pintarTutores();
+}
+
+function pintarTutores() {
+  $("estadoAcceso").textContent = tutores.length
+    ? (tutores.length === 1 ? "Solo puede ver y reservar horas 1 correo." : `Solo pueden ver y reservar horas estos ${tutores.length} correos.`)
+    : "Ahora mismo no hay ningún correo en la lista, así que cualquiera con el enlace de la web puede reservar (o quien tenga el código común, si lo configuraste). Añade correos para restringir el acceso.";
+  const cont = $("listaTutores"); cont.replaceChildren();
+  for (const t of tutores) {
+    const fila = document.createElement("div"); fila.className = "tutor";
+    const q = document.createElement("div"); q.className = "quien";
+    const l1 = document.createElement("div"); l1.style.fontWeight = "600"; l1.textContent = t.email; q.append(l1);
+    if (t.nombre) { const l2 = document.createElement("div"); l2.className = "muted"; l2.textContent = t.nombre; q.append(l2); }
+    const acc = document.createElement("div"); acc.className = "acc";
+    const b = document.createElement("button"); b.type = "button"; b.className = "btn warn sm"; b.textContent = "Quitar"; b.onclick = () => quitarTutor(t);
+    acc.append(b); fila.append(q, acc); cont.append(fila);
+  }
+}
+
+async function quitarTutor(t) {
+  let msg = `¿Quitar ${t.email}? Ya no podrá entrar a reservar. Las reservas que ya hizo se mantienen.`;
+  if (tutores.length === 1) msg += "\n\nOjo: es el último de la lista. Sin correos en la lista, el acceso vuelve a ser libre.";
+  if (!confirm(msg)) return;
+  try { await api("/admin/tutors/" + t.id, { method: "DELETE" }); await cargarTutores(); aviso("Correo eliminado de la lista."); }
+  catch (e) { aviso(e.message, true); }
+}
+
+function parsearTutores(texto) {
+  return texto.split(/[\n;]+/).map((l) => l.trim()).filter(Boolean).map((l) => {
+    const m = l.match(/^(.*?)\s*<([^>]+)>$/);
+    if (m) return { email: m[2].trim(), nombre: m[1].replace(/^"|"$/g, "").trim() };
+    const [email, ...resto] = l.split(",");
+    return { email: email.trim(), nombre: resto.join(",").trim() };
+  });
+}
+
+$("formTutores").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const lista = parsearTutores($("listaNuevos").value);
+  if (!lista.length) return aviso("Escribe al menos un correo.", true);
+  try {
+    const r = await api("/admin/tutors", { method: "POST", body: JSON.stringify({ tutores: lista }) });
+    await cargarTutores();
+    const partes = [];
+    if (r.creados) partes.push(r.creados === 1 ? "1 correo añadido." : `${r.creados} correos añadidos.`);
+    if (r.existentes) partes.push(`${r.existentes} ya estaban.`);
+    if (r.invalidos) partes.push(`${r.invalidos} no tienen un correo válido.`);
+    aviso(partes.join(" ") || "No se añadió nada.", !r.creados);
+    if (!r.invalidos) $("listaNuevos").value = "";
+  } catch (e) { aviso(e.message, true); }
 });
 
 if (pass) entrar();
