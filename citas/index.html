@@ -97,6 +97,8 @@
 
 <script>
 const API = "/api/citas";
+const DOMINIO = "@edu.gva.es"; // se añade si el tutor escribe solo su usuario
+let esPersonal = false;
 let codigo = ""; // correo del tutor (o código común, si se usa ese modo)
 let elegido = null;
 let yo = null; // tutor identificado por su correo
@@ -127,11 +129,14 @@ const fechaLarga = (f) =>
 
 function modoAcceso(personal) {
   $("etiquetaAcceso").textContent = personal ? "Tu correo" : "Código de acceso";
-  $("codigo").type = personal ? "email" : "text";
-  $("codigo").placeholder = personal ? "nombre@centro.es" : "";
+  esPersonal = !!personal;
+  $("codigo").type = "text";
+  $("codigo").inputMode = personal ? "email" : "text";
+  $("codigo").setAttribute("autocapitalize", personal ? "none" : "off");
+  $("codigo").placeholder = personal ? "tu.nombre" + DOMINIO : "";
   $("codigo").autocomplete = personal ? "email" : "off";
   $("ayudaAcceso").textContent = personal
-    ? "Escribe el correo con el que el departamento de Orientación te ha dado de alta."
+    ? "Escribe tu correo. Si solo escribes tu usuario, se completará con " + DOMINIO + "."
     : "Te lo ha facilitado el departamento de Orientación.";
 }
 
@@ -227,6 +232,7 @@ $("form").addEventListener("submit", async (ev) => {
 $("formCodigo").addEventListener("submit", (ev) => {
   ev.preventDefault();
   codigo = $("codigo").value.trim();
+  if (esPersonal && codigo && !codigo.includes("@")) codigo += DOMINIO;
   try { localStorage.setItem("acceso", codigo); } catch {}
   aviso("");
   cargar();
