@@ -47,7 +47,7 @@
 </head>
 <body>
 <main>
-  <h1>Reserva de citas con Orientación (Daniel Torres)</h1>
+  <h1>Reserva de citas con Orientación</h1>
   <p class="sub">Elige una hora libre. Cuando alguien la reserva, desaparece de la lista.</p>
 
   <p id="nota" class="hint" hidden></p>
@@ -74,6 +74,7 @@
     <select id="tipo" required>
       <option value="tutor">Conmigo (tutor/a)</option>
       <option value="familia">Con una familia (acompaño a la familia)</option>
+      <option value="alumnos">Con alumnos (uno o varios)</option>
     </select>
 
     <div id="bloqueNombre">
@@ -85,8 +86,8 @@
       <p id="identidad" class="resumen" style="text-transform:none;word-break:break-word"></p>
     </div>
 
-    <label for="alumno">Alumno/a del que quieres tratar (opcional)</label>
-    <input id="alumno" maxlength="80">
+    <label for="alumno">Alumno/a(s) del que quieres tratar (opcional)</label>
+    <input id="alumno" maxlength="200" placeholder="Si son varios, sepáralos con comas">
 
     <p id="errForm" class="msg err" hidden></p>
     <div class="actions">

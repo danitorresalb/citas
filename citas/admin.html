@@ -335,9 +335,9 @@ function fila(s) {
   if (s.reserva) {
     const r = s.reserva;
     const linea = (t) => { const d = document.createElement("div"); d.textContent = t; info.append(d); };
-    linea(`${r.tipo === "familia" ? "Con familia" : "Con tutor/a"} · ${r.nombre}`);
+    linea(`${{ familia: "Con familia", alumnos: "Con alumnos" }[r.tipo] || "Con tutor/a"} · ${r.nombre}`);
     if (r.email && r.email !== r.nombre) linea("✉ " + r.email);
-    if (r.alumno) linea(`Alumno/a: ${r.alumno}`);
+    if (r.alumno) linea(`Alumno/a(s): ${r.alumno}`);
   }
   const b = document.createElement("button"); b.type = "button"; b.className = "btn warn sm";
   if (s.reserva) { b.textContent = "Cancelar reserva"; b.onclick = () => cancelarReserva(s); }
