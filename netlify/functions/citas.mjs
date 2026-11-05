@@ -5,12 +5,13 @@
 //   ADMIN_PASSWORD  (obligatoria)  contraseña del panel del orientador
 //   NOTIFY_EMAIL    (recomendada)  correo donde recibirás el aviso de cada reserva
 //   RESEND_API_KEY  (recomendada)  clave de https://resend.com (plan gratuito)
-//   TUTOR_CODE      (opcional)     código de acceso que se pide a los tutores
+//   TUTOR_CODE      (opcional)     código común para todos los tutores. Solo se usa mientras
+//                                  NO haya correos autorizados en el panel; en cuanto hay
+//                                  alguno, el acceso pasa a ser por correo.
 //   FROM_EMAIL      (opcional)     remitente con dominio verificado en Resend.
-//                                  Si lo pones, también se envía confirmación al email del tutor.
 
 import { getStore } from "@netlify/blobs";
-import { timingSafeEqual, randomUUID } from "node:crypto";
+import { timingSafeEqual, randomUUID, createHash } from "node:crypto";
 
 const TZ = "Europe/Madrid";
 const BASE = "/api/citas";
@@ -65,10 +66,44 @@ function esAdmin(req) {
   const pass = process.env.ADMIN_PASSWORD;
   return !!pass && igual(req.headers.get("x-admin-password"), pass);
 }
-function codigoOk(req) {
-  const code = process.env.TUTOR_CODE;
-  if (!code) return true;
-  return igual(req.headers.get("x-codigo"), code) || esAdmin(req);
+
+// Tutores autorizados: se guardan por correo (en minúsculas). El correo hace de contraseña.
+const normEmail = (v) => String(v ?? "").trim().toLowerCase().slice(0, 120);
+const idTutor = (email) => createHash("sha256").update(email).digest("hex");
+const reIdTutor = /^[a-f0-9]{64}$/;
+function credencial(req) {
+  try { return decodeURIComponent(req.headers.get("x-acceso") || ""); } catch { return ""; }
+}
+
+// Decide quién puede ver/reservar horas.
+//  - Admin: siempre.
+//  - Si hay correos autorizados: solo quien escriba uno de ellos.
+//  - Si no hay ninguno: TUTOR_CODE (si existe) o acceso libre.
+async function acceso(req, s) {
+  if (esAdmin(req)) return { ok: true, tutor: null };
+  const { blobs } = await s.list({ prefix: "tutors/" });
+  const cred = credencial(req);
+  if (blobs.length) {
+    const email = normEmail(cred);
+    const malo = { ok: false, msg: "Ese correo no está autorizado para reservar." };
+    if (!reEmail.test(email)) return malo;
+    const tutor = await s.get(`tutors/${idTutor(email)}`, { type: "json" });
+    return tutor ? { ok: true, tutor } : malo;
+  }
+  const comun = process.env.TUTOR_CODE;
+  if (!comun) return { ok: true, tutor: null };
+  return igual(cred, comun) ? { ok: true, tutor: null } : { ok: false, msg: "Código de acceso incorrecto." };
+}
+
+// Si había tutores guardados con el formato anterior (código personal), los pasa al formato por correo.
+async function migrarTutores(s) {
+  const { blobs } = await s.list({ prefix: "tutors/" });
+  for (const { key } of blobs) {
+    if (reIdTutor.test(key.slice(7))) continue;
+    const t = await s.get(key, { type: "json" });
+    if (t?.email) { const id = idTutor(normEmail(t.email)); await s.setJSON(`tutors/${id}`, { id, email: normEmail(t.email), nombre: t.nombre || "", creado: t.creado }, { onlyIfNew: true }); }
+    await s.delete(key);
+  }
 }
 
 async function leerTodo(s, prefix) {
@@ -105,28 +140,34 @@ export default async (req) => {
   try {
     // ===== Público =====
     if (metodo === "GET" && ruta === "/config") {
-      return json({ requiereCodigo: !!process.env.TUTOR_CODE });
+      const { blobs } = await s.list({ prefix: "tutors/" });
+      return json({ requiereCodigo: blobs.length > 0 || !!process.env.TUTOR_CODE, personal: blobs.length > 0 });
     }
 
     if (metodo === "GET" && ruta === "/slots") {
-      if (!codigoOk(req)) return fail("Código de acceso incorrecto.", 401);
+      const a = await acceso(req, s);
+      if (!a.ok) return fail(a.msg, 401);
       const [slots, reservas] = await Promise.all([leerTodo(s, "slots/"), leerTodo(s, "bookings/")]);
       const ocupadas = new Set(reservas.map((r) => r.slotId));
       const libres = slots
         .filter((x) => !ocupadas.has(x.id) && !esPasado(x))
         .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
         .map(({ id, date, time, duration, lugar }) => ({ id, date, time, duration, lugar }));
-      return json({ slots: libres });
+      const tutor = a.tutor ? { nombre: a.tutor.nombre, email: a.tutor.email } : null;
+      return json({ slots: libres, tutor });
     }
 
     if (metodo === "POST" && ruta === "/book") {
-      if (!codigoOk(req)) return fail("Código de acceso incorrecto.", 401);
+      const a = await acceso(req, s);
+      if (!a.ok) return fail(a.msg, 401);
       let b;
       try { b = await req.json(); } catch { return fail("Datos no válidos."); }
 
       const slotId = String(b.slotId || "");
       if (!reId.test(slotId)) return fail("Hora no válida.");
-      const nombre = limpiar(b.nombre, 80);
+      // Con código personal, la identidad sale del tutor dado de alta (no se puede falsear).
+      const nombre = a.tutor ? (a.tutor.nombre || a.tutor.email) : limpiar(b.nombre, 80);
+      const email = a.tutor ? a.tutor.email : "";
       const tipo = b.tipo === "familia" ? "familia" : "tutor";
       if (!nombre) return fail("Indica tu nombre.");
 
@@ -137,6 +178,7 @@ export default async (req) => {
       const reserva = {
         slotId,
         nombre,
+        email,
         tipo,
         alumno: limpiar(b.alumno, 80),
         creada: new Date().toISOString(),
@@ -159,7 +201,7 @@ export default async (req) => {
         html: `<div style="font-family:system-ui,sans-serif;font-size:15px">
           <h2 style="margin:0 0 8px">Nueva reserva de cita</h2>
           <p style="margin:0 0 12px">${esc(cuando)}</p>
-          <table>${fila("Tipo", quien)}${fila("Reservado por", nombre)}
+          <table>${fila("Tipo", quien)}${fila("Reservado por", nombre)}${email && email !== nombre ? fila("Correo", email) : ""}
           ${fila("Alumno/a", reserva.alumno)}${fila("Lugar", slot.lugar)}</table></div>`,
       });
 
@@ -210,6 +252,34 @@ export default async (req) => {
         const id = m[1];
         if (!reId.test(id)) return fail("Hora no válida.");
         await s.delete(`bookings/${id}`); // la hora vuelve a quedar libre
+        return json({ ok: true });
+      }
+
+      // ----- Correos autorizados (el correo hace de contraseña) -----
+      if (metodo === "GET" && ruta === "/admin/tutors") {
+        await migrarTutores(s);
+        const tutores = (await leerTodo(s, "tutors/")).sort((x, y) => x.email.localeCompare(y.email));
+        return json({ tutores });
+      }
+
+      if (metodo === "POST" && ruta === "/admin/tutors") {
+        let b;
+        try { b = await req.json(); } catch { return fail("Datos no válidos."); }
+        await migrarTutores(s);
+        const entrada = Array.isArray(b.tutores) ? b.tutores.slice(0, 300) : [];
+        let creados = 0, existentes = 0, invalidos = 0;
+        for (const x of entrada) {
+          const email = normEmail(x.email);
+          if (!reEmail.test(email)) { invalidos++; continue; }
+          const id = idTutor(email);
+          const r = await s.setJSON(`tutors/${id}`, { id, email, nombre: limpiar(x.nombre, 80), creado: new Date().toISOString() }, { onlyIfNew: true });
+          if (r && r.modified === false) existentes++; else creados++;
+        }
+        return json({ creados, existentes, invalidos });
+      }
+
+      if (metodo === "DELETE" && (m = ruta.match(/^\/admin\/tutors\/([a-f0-9]{64})$/))) {
+        await s.delete(`tutors/${m[1]}`);
         return json({ ok: true });
       }
     }
