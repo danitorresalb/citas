@@ -185,7 +185,7 @@ export default async (req) => {
       // Con código personal, la identidad sale del tutor dado de alta (no se puede falsear).
       const nombre = a.tutor ? (a.tutor.nombre || a.tutor.email) : limpiar(b.nombre, 80);
       const email = a.tutor ? a.tutor.email : "";
-      const tipo = b.tipo === "familia" ? "familia" : "tutor";
+      const tipo = ["familia", "alumnos"].includes(b.tipo) ? b.tipo : "tutor";
       if (!nombre) return fail("Indica tu nombre.");
 
       const slot = await s.get(`slots/${slotId}`, { type: "json" });
@@ -198,7 +198,7 @@ export default async (req) => {
         nombre,
         email,
         tipo,
-        alumno: limpiar(b.alumno, 80),
+        alumno: limpiar(b.alumno, 200),
         creada: new Date().toISOString(),
         token: randomUUID(),
       };
@@ -210,7 +210,7 @@ export default async (req) => {
       }
 
       const cuando = `${fechaBonita(slot.date)} a las ${slot.time} (${slot.duration} min)`;
-      const quien = tipo === "familia" ? "Cita con familia" : "Cita con el tutor/a";
+      const quien = { familia: "Cita con familia", alumnos: "Cita con alumnos" }[tipo] || "Cita con el tutor/a";
       const fila = (k, v) => (v ? `<tr><td style="padding:4px 12px 4px 0;color:#666">${k}</td><td><b>${esc(v)}</b></td></tr>` : "");
 
       await enviarCorreo({
@@ -220,7 +220,7 @@ export default async (req) => {
           <h2 style="margin:0 0 8px">Nueva reserva de cita</h2>
           <p style="margin:0 0 12px">${esc(cuando)}</p>
           <table>${fila("Tipo", quien)}${fila("Reservado por", nombre)}${email && email !== nombre ? fila("Correo", email) : ""}
-          ${fila("Alumno/a", reserva.alumno)}${fila("Lugar", slot.lugar)}</table></div>`,
+          ${fila("Alumno/a(s)", reserva.alumno)}${fila("Lugar", slot.lugar)}</table></div>`,
       });
 
       return json({ ok: true, cuando, lugar: slot.lugar || "" }, 201);
