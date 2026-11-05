@@ -118,6 +118,11 @@
     </div>
 
     <div id="vistaAgenda">
+    <div class="card">
+      <label for="antelacion" style="margin-top:0">Cuándo pueden reservar los tutores</label>
+      <select id="antelacion"></select>
+      <p class="muted" id="antelacionInfo" style="margin:8px 0 0"></p>
+    </div>
     <div class="layout">
       <!-- Calendario -->
       <div class="card">
@@ -236,7 +241,7 @@ function aviso(texto, error = false) {
 // ---------- acceso ----------
 function mostrarPanel(si) { $("login").hidden = si; $("panel").hidden = !si; }
 async function entrar() {
-  try { await cargar(); mostrarPanel(true); cargarTutores().catch(() => {}); }
+  try { await cargar(); mostrarPanel(true); cargarTutores().catch(() => {}); cargarAjustes().catch(() => {}); }
   catch (e) {
     mostrarPanel(false); sessionStorage.removeItem("adminPass");
     if (pass) { $("errLogin").textContent = e.message; $("errLogin").hidden = false; }
@@ -324,7 +329,7 @@ function fila(s) {
   hora.textContent = `${s.time} – ${aHora(aMin(s.time) + s.duration)}`;
   const info = document.createElement("div"); info.className = "info";
   const est = document.createElement("span"); est.className = "estado" + (s.reserva ? " res" : "");
-  est.textContent = s.reserva ? "Reservada" : "Libre";
+  est.textContent = s.reserva ? "Reservada" : (s.noReservable && !s.pasada ? "Libre · aún no reservable" : "Libre");
   info.append(est);
   if (s.lugar) { const m = document.createElement("span"); m.className = "muted"; m.textContent = " " + s.lugar; info.append(m); }
   if (s.reserva) {
@@ -391,6 +396,29 @@ $("formVarias").addEventListener("submit", async (ev) => {
   if (solapes(horas, dur) && !confirm("Alguna de esas horas se solapa con otras que ya tienes ese día. ¿Añadirlas igualmente?")) return;
   try { await crear(horas, dur); } catch (e) { aviso(e.message, true); }
 });
+
+// ---------- antelación para reservar ----------
+let antelacion = 0;
+const sumarDias = (f, n) => { const d = new Date(f + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const etiquetaAntelacion = (n) =>
+  n === 0 ? "Desde hoy (las horas que aún no hayan pasado)" : n === 1 ? "A partir de mañana (no se puede reservar el mismo día)"
+  : n === 2 ? "A partir de pasado mañana" : `Con al menos ${n} días de antelación`;
+
+function pintarAntelacion() {
+  const sel = $("antelacion");
+  if (!sel.options.length) for (let n = 0; n <= 14; n++) sel.add(new Option(etiquetaAntelacion(n), String(n)));
+  sel.value = String(antelacion);
+  $("antelacionInfo").textContent = `Hoy los tutores ven las horas desde el ${fechaLarga(sumarDias(hoy, antelacion))}. Las horas anteriores siguen en tu agenda, pero no se pueden reservar.`;
+}
+async function cargarAjustes() { antelacion = (await api("/admin/settings")).antelacionDias; pintarAntelacion(); }
+$("antelacion").addEventListener("change", async () => {
+  const n = Number($("antelacion").value);
+  try {
+    await api("/admin/settings", { method: "POST", body: JSON.stringify({ antelacionDias: n }) });
+    antelacion = n; pintarAntelacion(); await cargar(); aviso("Guardado.");
+  } catch (e) { pintarAntelacion(); aviso(e.message, true); }
+});
+pintarAntelacion();
 
 // ---------- pestañas ----------
 function vista(cual) {

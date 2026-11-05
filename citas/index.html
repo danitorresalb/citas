@@ -50,6 +50,7 @@
   <h1>Reserva de citas con Orientación</h1>
   <p class="sub">Elige una hora libre. Cuando alguien la reserva, desaparece de la lista.</p>
 
+  <p id="nota" class="hint" hidden></p>
   <div id="aviso" role="status"></div>
 
   <section id="acceso" class="card" hidden>
@@ -142,8 +143,10 @@ function modoAcceso(personal) {
 
 async function cargar() {
   try {
-    const { slots, tutor } = await api("/slots");
+    const { slots, tutor, desde, antelacionDias } = await api("/slots");
     yo = tutor || null;
+    $("nota").hidden = !(antelacionDias > 0);
+    if (antelacionDias > 0) $("nota").textContent = `Las citas se reservan con antelación: la primera fecha disponible es el ${fechaLarga(desde)}.`;
     $("acceso").hidden = true;
     pintar(slots);
   } catch (e) {
